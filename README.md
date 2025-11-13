@@ -188,5 +188,5 @@ MIT License - see LICENSE file for details
 
 - Documentation: `/docs`
 - Issues: GitHub Issues
-- Discord: [Join our community]
-- Email: support@generativeart.gallery
+- Discord: /
+- Email: info@nodaysidle.com
