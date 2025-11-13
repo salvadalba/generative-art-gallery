@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: generative-art-gallery
-  labels:
-    name: generative-art-gallery
-    environment: production
