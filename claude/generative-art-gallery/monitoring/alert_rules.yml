@@ -1,0 +1,241 @@
+groups:
+- name: generative-art-gallery-alerts
+  rules:
+  
+  # Service Health Alerts
+  - alert: ServiceDown
+    expr: up == 0
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Service {{ $labels.job }} is down"
+      description: "Service {{ $labels.job }} has been down for more than 2 minutes."
+
+  - alert: HighErrorRate
+    expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High error rate detected"
+      description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.job }}."
+
+  # Resource Usage Alerts
+  - alert: HighCPUUsage
+    expr: (100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU usage detected"
+      description: "CPU usage is above 80% for {{ $labels.instance }}."
+
+  - alert: HighMemoryUsage
+    expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.9
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High memory usage detected"
+      description: "Memory usage is above 90% for {{ $labels.instance }}."
+
+  - alert: LowDiskSpace
+    expr: (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"}) * 100 < 10
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Low disk space detected"
+      description: "Disk space is below 10% for {{ $labels.instance }} on {{ $labels.device }}."
+
+  # Application-Specific Alerts
+  - alert: GANServiceHighLatency
+    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="gan-service"}[5m])) > 60
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "GAN service high latency"
+      description: "95th percentile latency is {{ $value }}s for GAN service."
+
+  - alert: ArtGenerationFailureRate
+    expr: rate(gan_generation_failures_total[10m]) > 0.05
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High art generation failure rate"
+      description: "Art generation failure rate is {{ $value | humanizePercentage }}."
+
+  - alert: NFTMintingFailures
+    expr: increase(nft_mint_failures_total[1h]) > 5
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Multiple NFT minting failures"
+      description: "{{ $value }} NFT minting failures in the last hour."
+
+  # Database Alerts
+  - alert: DatabaseConnections
+    expr: pg_stat_activity_count > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High database connection count"
+      description: "PostgreSQL has {{ $value }} active connections."
+
+  - alert: DatabaseReplicationLag
+    expr: pg_replication_lag > 30
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Database replication lag"
+      description: "PostgreSQL replication lag is {{ $value }}s."
+
+  # Redis Alerts
+  - alert: RedisMemoryUsage
+    expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High Redis memory usage"
+      description: "Redis memory usage is {{ $value | humanizePercentage }}."
+
+  - alert: RedisConnections
+    expr: redis_connected_clients > 100
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High Redis connection count"
+      description: "Redis has {{ $value }} connected clients."
+
+  # Security Alerts
+  - alert: HighRequestRate
+    expr: rate(http_requests_total[5m]) > 1000
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Unusually high request rate"
+      description: "Request rate is {{ $value }} requests per second."
+
+  - alert: RateLimitViolations
+    expr: increase(rate_limit_violations_total[5m]) > 10
+    for: 2m
+    labels:
+      severity: info
+    annotations:
+      summary: "Rate limit violations detected"
+      description: "{{ $value }} rate limit violations in the last 5 minutes."
+
+  # Business Logic Alerts
+  - alert: LowArtGenerationRate
+    expr: rate(art_pieces_generated_total[1h]) < 10
+    for: 30m
+    labels:
+      severity: info
+    annotations:
+      summary: "Low art generation rate"
+      description: "Art generation rate is {{ $value }} pieces per hour."
+
+  - alert: ZeroNFTMinting
+    expr: rate(nft_mints_total[1h]) == 0
+    for: 2h
+    labels:
+      severity: info
+    annotations:
+      summary: "No NFT minting activity"
+      description: "No NFT minting activity in the last 2 hours."
+
+  # SSL Certificate Alerts
+  - alert: SSLCertificateExpiry
+    expr: ssl_certificate_expiry_seconds < 7 * 24 * 3600
+    for: 1h
+    labels:
+      severity: warning
+    annotations:
+      summary: "SSL certificate expiring soon"
+      description: "SSL certificate expires in {{ $value | humanizeDuration }}."
+
+  - alert: SSLCertificateExpired
+    expr: ssl_certificate_expiry_seconds < 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "SSL certificate expired"
+      description: "SSL certificate has expired."
+
+  # IPFS Storage Alerts
+  - alert: IPFSStorageQuota
+    expr: ipfs_storage_usage_bytes / ipfs_storage_quota_bytes > 0.8
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High IPFS storage usage"
+      description: "IPFS storage usage is {{ $value | humanizePercentage }}."
+
+  - alert: IPFSUploadFailures
+    expr: rate(ipfs_upload_failures_total[10m]) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High IPFS upload failure rate"
+      description: "IPFS upload failure rate is {{ $value | humanizePercentage }}."
+
+  # Ethereum Network Alerts
+  - alert: EthereumNetworkIssues
+    expr: ethereum_network_latency_seconds > 10
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Ethereum network latency high"
+      description: "Ethereum network latency is {{ $value }}s."
+
+  - alert: EthereumGasPriceSpike
+    expr: ethereum_gas_price_gwei > 100
+    for: 10m
+    labels:
+      severity: info
+    annotations:
+      summary: "High Ethereum gas prices"
+      description: "Ethereum gas price is {{ $value }} gwei."
+
+- name: business-metrics
+  rules:
+  # Business KPI Alerts
+  - alert: DailyActiveUsersDrop
+    expr: daily_active_users < 10
+    for: 1d
+    labels:
+      severity: info
+    annotations:
+      summary: "Low daily active users"
+      description: "Only {{ $value }} daily active users."
+
+  - alert: UserRegistrationDrop
+    expr: rate(user_registrations_total[1d]) < 1
+    for: 3d
+    labels:
+      severity: info
+    annotations:
+      summary: "Low user registration rate"
+      description: "Less than 1 user registration per day."
+
+  - alert: RevenueDrop
+    expr: rate(nft_minting_revenue_eth[1d]) < 0.01
+    for: 7d
+    labels:
+      severity: info
+    annotations:
+      summary: "Low NFT minting revenue"
+      description: "NFT minting revenue is {{ $value }} ETH per day."
